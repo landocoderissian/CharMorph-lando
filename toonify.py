@@ -1,35 +1,37 @@
+# toonify.py
+
 import bpy
 
-def append_color_ramp_from_external():
-    # Define the path to the external blend file and the material
-    blend_file_path = "./lib/shader.blend/Material/"
-    material_name = "Rody_Body"
+def add_solidify_modifier_with_material(obj, material_name):
+    # Check if the material exists
+    material = bpy.data.materials.get(material_name)
+    if not material:
+        # Create a new material if it does not exist
+        material = bpy.data.materials.new(name=material_name)
+        material.use_nodes = True
+        bsdf = material.node_tree.nodes.get('Principled BSDF')
+        if bsdf:
+            bsdf.inputs['Base Color'].default_value = (0, 0, 0, 1)  # Set color to black
 
-    # Append the material from the external file
-    with bpy.data.libraries.load(blend_file_path, link=False) as (data_from, data_to):
-        if material_name in data_from.materials:
-            data_to.materials = [material_name]
-
-    # The material is now appended and accessible
-    appended_material = bpy.data.materials.get(material_name)
-    
-    if not appended_material:
-        print("Material not found in the appended file.")
-        return None
-
-    # Look for the ColorRamp node in the appended material's node tree
-    color_ramp_node = None
-    if appended_material.use_nodes:
-        for node in appended_material.node_tree.nodes:
-            if node.type == 'VALTORGB':  # ColorRamp node type
-                color_ramp_node = node
-                break
-
-    if color_ramp_node:
-        return color_ramp_node
+    # Find the material index
+    if material_name in obj.data.materials:
+        material_index = obj.data.materials.find(material_name)
     else:
-        print("ColorRamp node not found in the material.")
-        return None
+        obj.data.materials.append(material)
+        material_index = len(obj.data.materials) - 1
+
+    # Add the Solidify modifier
+    solidify_mod = obj.modifiers.new(name="Solidify", type='SOLIDIFY')
+    solidify_mod.thickness = -0.12
+    solidify_mod.offset = 0.0
+    solidify_mod.use_even_offset = True
+    solidify_mod.material_offset = material_index
+    solidify_mod.thickness_clamp = 0.4000
+    solidify_mod.flip_normals = True
+    solidify_mod.even_thickness = False
+    solidify_mod.fill = False
+
+    return solidify_mod
 
 def toonify_material(material):
     # Ensure the material uses nodes
@@ -52,25 +54,26 @@ def toonify_material(material):
         if node != image_texture:
             nodes.remove(node)
 
+
     # Add Principled BSDF
     principled = nodes.new(type='ShaderNodeBsdfPrincipled')
     principled.location = (-300, 300)
+
 
     # Add Shader to RGB
     shader_to_rgb = nodes.new(type='ShaderNodeShaderToRGB')
     shader_to_rgb.location = (-100, 300)
 
-    # Append the ColorRamp from the external file
-    color_ramp = append_color_ramp_from_external()
-    if color_ramp:
-        color_ramp = nodes.new(type='ShaderNodeValToRGB')
-        color_ramp.location = (100, 300)
-        # Copy the values from the appended ColorRamp
-        for i, element in enumerate(color_ramp.color_ramp.elements):
-            color_ramp.color_ramp.elements[i].position = element.position
-            color_ramp.color_ramp.elements[i].color = element.color
-    else:
-        return  # Skip this material if ColorRamp wasn't found or loaded
+    # Add color ramp
+    color_ramp = nodes.new(type='ShaderNodeValToRGB')
+    color_ramp.location = (100, 300)
+    color_ramp.color_ramp.interpolation = 'CONSTANT'
+    # Ensure there are exactly two elements and set their positions and colors
+    color_ramp.color_ramp.elements.remove(color_ramp.color_ramp.elements[1])  # Remove default second element
+    color_ramp.color_ramp.elements[0].position = 0.341  # First stop at the start
+    color_ramp.color_ramp.elements[0].color = (0, 0, 0, 1)  # Black color
+    second_element = color_ramp.color_ramp.elements.new(0.332)  # Add second stop
+    second_element.color = (1, 1, 1, 1)  # White color
 
     # Add Emission nodes
     emission1 = nodes.new(type='ShaderNodeEmission')
@@ -110,6 +113,10 @@ def toonify_material(material):
 def apply_toonify():
     obj = bpy.context.active_object
     
+    if bpy.context.selected_objects:
+        add_solidify_modifier_with_material(obj, 'Line')
+    else:
+        print("No object selected.")
     if obj is not None:
         for material_slot in obj.material_slots:
             material = material_slot.material
@@ -126,24 +133,30 @@ class ToonifyOperator(bpy.types.Operator):
         apply_toonify()
         return {'FINISHED'}
 
+
+
 class ToonifyPanel(bpy.types.Panel):
     bl_label = "Toonify"
-    bl_idname = "OBJECT_PT_toonify"
+    bl_parent_id = "VIEW3D_PT_CharMorph"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Toonify'
-    
+    bl_options = {"DEFAULT_CLOSED"}
+    bl_order = 8
+
     def draw(self, context):
         layout = self.layout
         layout.operator("object.toonify_operator")
 
+    toggle: bpy.props.BoolProperty(name="Expand", default=False)
+
+classes = [
+    ToonifyOperator, ToonifyPanel
+]
+
 def register():
-    bpy.utils.register_class(ToonifyOperator)
-    bpy.utils.register_class(ToonifyPanel)
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_class(ToonifyOperator)
-    bpy.utils.unregister_class(ToonifyPanel)
-
-if __name__ == "__main__":
-    register()
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

@@ -84,7 +84,7 @@ class DataDir:
 class Character(DataDir):
     description = ""
     author = ""
-    licence = ""
+    license = ""
     char_file = "char.blend"
     char_obj = "char"
     basis = ""
