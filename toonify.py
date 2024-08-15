@@ -27,9 +27,6 @@ def add_solidify_modifier_with_material(obj, material_name):
     solidify_mod.use_even_offset = True
     solidify_mod.material_offset = material_index
     solidify_mod.thickness_clamp = 0.4000
-    solidify_mod.flip_normals = True
-    solidify_mod.even_thickness = False
-    solidify_mod.fill = False
 
     return solidify_mod
 

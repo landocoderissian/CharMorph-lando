@@ -90,7 +90,7 @@ classes: list[type] = [None, prefs.CharMorphPrefs, VIEW3D_PT_CharMorph]
 
 uiprops = [bpy.types.PropertyGroup]
 
-for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, toonify:
+for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, toonify, charlib:
     classes.extend(module.classes)
     if hasattr(module, "UIProps"):
         uiprops.append(module.UIProps)
@@ -119,7 +119,6 @@ def register():
     bpy.app.handlers.depsgraph_update_post.append(select_handler)
 
     cmedit.register()
-
 
 def unregister():
     # addon updater unregister

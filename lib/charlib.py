@@ -1,24 +1,9 @@
-# ##### BEGIN GPL LICENSE BLOCK #####
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 3
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software Foundation,
-#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-#
-# ##### END GPL LICENSE BLOCK #####
-#
-# Copyright (C) 2020-2022 Michael Vigovsky
-
-import os, json, collections, logging, traceback, numpy
+import os
+import json
+import collections
+import logging
+import traceback
+import numpy as np  # aliasing numpy for readability
 
 import bpy  # pylint: disable=import-error
 
@@ -26,6 +11,25 @@ from . import morphs, utils
 
 logger = logging.getLogger(__name__)
 
+# Global variables
+global_data_dir = None
+library = None
+
+# Script directory and config file path
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
+
+def save_directory_path(path):
+    config = {"data_dir": path}
+    with open(CONFIG_FILE, "w") as config_file:
+        json.dump(config, config_file)
+
+def load_directory_path():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as config_file:
+            config = json.load(config_file)
+            return config.get("data_dir")
+    return None  # If no config file exists, return None
 
 def load_data_dir(path, target_ext):
     result = {}
@@ -36,7 +40,6 @@ def load_data_dir(path, target_ext):
         if ext == target_ext and os.path.isfile(os.path.join(path, file)):
             result[name] = (os.path.join(path, file), name)
     return result
-
 
 def load_json_dir(path):
     result = {}
@@ -49,9 +52,7 @@ def load_json_dir(path):
             result[name] = utils.parse_file(full_path, json.load, {})
     return result
 
-
 _empty_dict = object()
-
 
 class DataDir:
     dirpath: str = ""
@@ -75,16 +76,32 @@ class DataDir:
         file = self.path(file)
         if not os.path.isfile(file):
             return None
-        result = numpy.load(file)
-        if readonly and isinstance(result, numpy.ndarray):
+        result = np.load(file)
+        if readonly and isinstance(result, np.ndarray):
             result.flags.writeable = False
         return result
 
+    def migrate_data(self, new_directory):
+        if not os.path.exists(new_directory):
+            raise ValueError(f"The directory {new_directory} does not exist")
+
+        for filename in os.listdir(self.dirpath):
+            source_file = os.path.join(self.dirpath, filename)
+            destination_file = os.path.join(new_directory, filename)
+
+            if os.path.isfile(source_file):
+                shutil.move(source_file, destination_file)
+
+        if not os.listdir(self.dirpath):
+            os.rmdir(self.dirpath)
+
+        self.dirpath = new_directory
+        save_directory_path(self.dirpath)
 
 class Character(DataDir):
     description = ""
     author = ""
-    license = ""
+    licence = ""
     char_file = "char.blend"
     char_obj = "char"
     basis = ""
@@ -228,10 +245,8 @@ class Character(DataDir):
     def _parse_armature_dict(self, data):
         return {k: Armature(self, k, v) for k, v in data.items()}
 
-
 AssetFold = collections.namedtuple("AssetFold", ("verts", "faces", "pos", "idx", "weights", "wmorph"))
 AssetJoints = collections.namedtuple("AssetJoints", ("verts", "file"))
-
 
 class Asset(DataDir):
     def __init__(self, name, file, path=None):
@@ -282,7 +297,6 @@ class Asset(DataDir):
     def morph(self):
         return morphs.load_noext(self.path("morph"))
 
-
 def get_asset(asset_dir: str, name: str):
     path = os.path.join(asset_dir, name)
     if os.path.isdir(path):
@@ -293,7 +307,6 @@ def get_asset(asset_dir: str, name: str):
     elif name.endswith(".blend"):
         return Asset(name[:-6], path)
     return None
-
 
 def load_assets_dir(path: str):
     result: dict[str, Asset] = {}
@@ -314,10 +327,6 @@ def load_assets_dir(path: str):
                     asset.__dict__.update(yaml)
     return result
 
-
-# allows to mark some properties of the class as lazy yaml
-# if property value is dict or some other value, leave it as is
-# if property is a string, treat it as yaml file name, but don't load the yaml file until it's needed
 def _lazy_yaml_props(*prop_lst):
     def modify_class(cls):
         orig_init = cls.__init__
@@ -339,12 +348,10 @@ def _lazy_yaml_props(*prop_lst):
 
     return modify_class
 
-
 def parse_joints(joints, d: DataDir):
     if isinstance(joints, dict):
         joints = (joints,)
     return [AssetJoints(item["verts"], d.path(item["file"])) for item in joints]
-
 
 @_lazy_yaml_props("bones", "mixin_bones")
 class Armature:
@@ -405,9 +412,7 @@ class Armature:
     def weights_npz(self):
         return self.parent.get_np(self.weights)
 
-
 empty_char = Character("", DataDir(""))
-
 
 class Library(DataDir):
     chars: dict[str, Character]
@@ -468,9 +473,13 @@ class Library(DataDir):
 
         t.time("Library load")
 
+# Load the directory path from the configuration file at startup
+stored_dirpath = load_directory_path()
+if stored_dirpath is None:
+    stored_dirpath = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data"))  # Default path if no config is found
 
-library = Library(os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data")))
-
+global_data_dir = DataDir(stored_dirpath)  # Initialize with the stored or default path
+library = Library(global_data_dir.get_dirpath())  # Initialize Library with the loaded path
 
 def get_basis(data, mcore=None, use_char=True):
     if isinstance(data, bpy.types.Object):
@@ -497,3 +506,60 @@ def get_basis(data, mcore=None, use_char=True):
             return library.char_by_name(data.get("charmorph_template")).get_np("morphs/alt_topo/" + alt_topo)
 
     return utils.verts_to_numpy(data.vertices)
+
+class CHAR_MORPH_OT_select_directory(bpy.types.Operator):
+    bl_idname = "char_morph.select_directory"
+    bl_label = "Select Directory"
+
+    directory: bpy.props.StringProperty(subtype="DIR_PATH")  # type: ignore
+
+    def execute(self, context):
+        if not self.directory:
+            self.report({'ERROR'}, "No directory selected")
+            return {'CANCELLED'}
+
+        global global_data_dir
+        global library  # Reference the global library instance
+
+        try:
+            # Migrate the data to the new directory
+            global_data_dir.migrate_data(self.directory)
+
+            # Update the global library instance with the new directory
+            library = Library(global_data_dir.get_dirpath())
+
+            # Save the new directory path to a config file for persistence
+            save_directory_path(global_data_dir.get_dirpath())
+
+            self.report({'INFO'}, f"Data migrated to {self.directory} and library updated.")
+        except Exception as e:
+            self.report({'ERROR'}, f"Failed to migrate data: {str(e)}")
+            return {'CANCELLED'}
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+class CHAR_MORPH_PT_panel(bpy.types.Panel):
+    bl_label = "CharMorph Data Migration"
+    bl_idname = "CHAR_MORPH_PT_panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CharMorph'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("char_morph.select_directory", text="Migrate Data")
+
+def register():
+    bpy.utils.register_class(CHAR_MORPH_OT_select_directory)
+    bpy.utils.register_class(CHAR_MORPH_PT_panel)
+
+def unregister():
+    bpy.utils.unregister_class(CHAR_MORPH_OT_select_directory)
+    bpy.utils.unregister_class(CHAR_MORPH_PT_panel)
+
+if __name__ == "__main__":
+    register()

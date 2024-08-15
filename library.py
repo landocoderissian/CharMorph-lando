@@ -164,7 +164,7 @@ class UIProps:
         name="Base",
         items=lambda _ui, _: [(name, char.title, char.description) for name, char in library.chars.items()],
         update=update_base_model,
-        description="Choose a base model")
+        description="Choose a base model") # type: ignore
     material_mode: bpy.props.EnumProperty(
         name="Materials",
         default="TS",
@@ -173,11 +173,11 @@ class UIProps:
             ("NS", "Non-Shared", "Use unique material for each character"),
             ("TS", "Shared textures only", "Use same texture for all characters"),
             ("MS", "Shared", "Use same materials for all characters")]
-    )
+    ) # type: ignore
     # TODO: copy materials from custom object
     material_local: bpy.props.BoolProperty(
         name="Use local materials", default=True,
-        description="Use local copies of materials for faster loading")
+        description="Use local copies of materials for faster loading") # type: ignore
     tex_set: bpy.props.EnumProperty(
         name="Texture set",
         description="Select texture set for the character",
@@ -185,26 +185,26 @@ class UIProps:
             (name, "<Default>" if name == "/" else name, "")
             for name in library.chars.get(ui.base_model, empty_char).texture_sets
         ],
-    )
+    ) # type: ignore
     tex_downscale: bpy.props.EnumProperty(
         name="Downscale textures",
         description="Downscale large textures to avoid memory overflows",
         default="UL",
         items=[("1K", "1K", ""), ("2K", "2K", ""), ("4K", "4K", ""), ("UL", "No limit", "")]
-    )
+    ) # type: ignore
     import_cursor_z: bpy.props.BoolProperty(
         name="Use Z cursor rotation", default=True,
-        description="Take 3D cursor Z rotation into account when creating the character")
+        description="Take 3D cursor Z rotation into account when creating the character") # type: ignore
     use_sk: bpy.props.BoolProperty(
         name="Use shape keys for morphing", default=False,
         description="Use shape keys during morphing"
-                    "(should be on if you plan to resume morphing later, maybe with other versions of CharMorph)")
+                    "(should be on if you plan to resume morphing later, maybe with other versions of CharMorph)") # type: ignore
     import_morphs: bpy.props.BoolProperty(
         name="Import morphing shape keys", default=False,
-        description="Import and morph character using shape keys")
+        description="Import and morph character using shape keys") # type: ignore
     import_expressions: bpy.props.BoolProperty(
         name="Import expression shape keys", default=False,
-        description="Import and morph character using shape keys")
+        description="Import and morph character using shape keys") # type: ignore
     alt_topo: bpy.props.EnumProperty(
         name="Alt topo",
         default="<Base>",
@@ -212,12 +212,12 @@ class UIProps:
         items=[
             ("<Base>", "<Base>", "Use base character topology"),
             ("<Custom>", "<Custom>", "Use custom local object as alt topo")]
-    )
+    ) # type: ignore
     alt_topo_obj: bpy.props.PointerProperty(
         name="Custom alt topo",
         type=bpy.types.Object,
         description="Select custom object to use as alternative topology",
-        poll=utils.visible_mesh_poll)
+        poll=utils.visible_mesh_poll) # type: ignore
 
 
 class CHARMORPH_PT_Library(bpy.types.Panel):
