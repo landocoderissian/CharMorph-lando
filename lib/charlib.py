@@ -1,9 +1,4 @@
-import os
-import json
-import collections
-import logging
-import traceback
-import numpy as np  # aliasing numpy for readability
+import os, json, collections, logging, traceback, numpy
 
 import bpy  # pylint: disable=import-error
 
@@ -479,7 +474,7 @@ if stored_dirpath is None:
     stored_dirpath = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data"))  # Default path if no config is found
 
 global_data_dir = DataDir(stored_dirpath)  # Initialize with the stored or default path
-library = Library(global_data_dir.get_dirpath())  # Initialize Library with the loaded path
+library = Library(global_data_dir.dirpath)  # Initialize Library with the loaded path
 
 def get_basis(data, mcore=None, use_char=True):
     if isinstance(data, bpy.types.Object):
@@ -526,10 +521,10 @@ class CHAR_MORPH_OT_select_directory(bpy.types.Operator):
             global_data_dir.migrate_data(self.directory)
 
             # Update the global library instance with the new directory
-            library = Library(global_data_dir.get_dirpath())
+            library = Library(global_data_dir.dirpath)
 
             # Save the new directory path to a config file for persistence
-            save_directory_path(global_data_dir.get_dirpath())
+            save_directory_path(global_data_dir.dirpath)
 
             self.report({'INFO'}, f"Data migrated to {self.directory} and library updated.")
         except Exception as e:
@@ -552,6 +547,11 @@ class CHAR_MORPH_PT_panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.operator("char_morph.select_directory", text="Migrate Data")
+
+classes = [
+    CHAR_MORPH_OT_select_directory, CHAR_MORPH_PT_panel
+]
+
 
 def register():
     bpy.utils.register_class(CHAR_MORPH_OT_select_directory)
