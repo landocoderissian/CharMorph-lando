@@ -233,11 +233,11 @@ def _import_expresions(add_assets):
 
         if add_assets:
             for afd in fitter.get_assets():
-                fitted_data = afd.binding.fit(data) # type: ignore
+                fitted_data = afd.binding.fit(data)
                 if ((fitted_data ** 2).sum(1) < 1e-6).all():
                     continue
                 fitted_data += afd.geom.verts
-                sk = get_exp_sk(afd.obj, name) # type: ignore
+                sk = get_exp_sk(afd.obj, name)
                 sk.data.foreach_set("co", fitted_data.reshape(-1))
 
 
@@ -294,14 +294,14 @@ class UIProps:
             ("AL", "Full apply", "Apply current mix as new basis and remove all shape keys"
                 "except facial expression shapekeys or other additional morphs"),
         ],
-        description="Apply current shape key mix") # type: ignore
+        description="Apply current shape key mix")
     fin_subdivision: bpy.props.EnumProperty(
         name="Subdivision",
         default="RO",
         items=[
             ("NO", "No", "No subdivision surface"),
             ("RO", "Render only", "Use subdivision only for rendering"),
-            ("RV", "Render+Viewport", "Use subdivision for rendering and viewport (may be slow)"),
+            ("RV", "Render+Viewport", "Use subdivision for rendering and viewport (may be slow on old hardware)"),
         ],
         description="Use subdivision surface for smoother look")
     fin_expressions: bpy.props.EnumProperty(
@@ -313,17 +313,17 @@ class UIProps:
             ("CH", "Character", "Import expression shape keys for character only"),
             ("CA", "Character+Assets", "Import expression shape keys for assets if they affect them (breathing for example)"),
         ],
-    ) # type: ignore
+    )
     fin_rig: bpy.props.BoolProperty(
         name="Rig",
         description="Add rig to the character as a part of finalization process",
         default=True,
-    ) # type: ignore
+    )
     fin_csmooth: bpy.props.BoolProperty(
         name="Corrective smooth",
         description="Use corrective smooth to fix deform artifacts",
         default=True,
-    )  # type: ignore
+    )
     fin_csmooth_assets: bpy.props.EnumProperty(
         name="Corrective smooth for assets",
         default="NO",
@@ -334,30 +334,30 @@ class UIProps:
             ("RO", "Rig only", "Allow to smooth only artifacts caused by armature deform"),
             ("NC", "No change", "Apply corrective smooth to assets but don't change its parameters"),
         ],
-    ) # type: ignore
+    )
     fin_cs_limit: bpy.props.BoolProperty(
         name="Limit smooth",
         description="Use rig-defined vertex group to limit corrective smooth where it causes undesirable effects",
         default=True,
-    ) # type: ignore
+    )
     fin_cs_lenweight: bpy.props.BoolProperty(
         name="Length weighted smooth",
         description="Use length weighted smooth instead of simple",
         default=False,
-    ) # type: ignore
+    )
     fin_cs_morphing: bpy.props.BoolProperty(
         name="Smooth morphing",
         description="Use corrective smooth to smooth morphing artifacts (requires shape keys to be enabled)",
         default=False,
-    ) # type: ignore
+    )
     fin_subdiv_assets: bpy.props.BoolProperty(
         name="Subdivide assets",
         default=False,
-        description="Subdivide assets together with character") # type: ignore
+        description="Subdivide assets together with character")
     fin_vg_cleanup: bpy.props.BoolProperty(
         name="Cleanup vertex groups",
         default=False,
-        description="Remove unused vertex groups after finalization") # type: ignore
+        description="Remove unused vertex groups after finalization")
 
 
 class CHARMORPH_PT_Finalize(bpy.types.Panel):

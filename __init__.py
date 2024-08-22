@@ -21,14 +21,13 @@
 import logging
 import bpy  # pylint: disable=import-error
 
-from . import addon_updater_ops
 from . import common, library, assets, morphing, randomize, file_io, hair, finalize, rig, rigify, pose, prefs, cmedit, toonify
 from .lib import charlib
 
 logger = logging.getLogger(__name__)
 
 bl_info = {
-    "name": "CharMorph-lando",
+    "name": "CharMorph",
     "author": "Michael Vigovsky",
     "version": (0, 3, 5),
     "blender": (3, 3, 0),
@@ -51,8 +50,8 @@ class VIEW3D_PT_CharMorph(bpy.types.Panel):
     bl_category = "CharMorph"
     bl_order = 1
 
-    def draw(self, context):
-        return
+    def draw(self, _):
+        pass
 
 
 def on_select():
@@ -90,7 +89,7 @@ classes: list[type] = [None, prefs.CharMorphPrefs, VIEW3D_PT_CharMorph]
 
 uiprops = [bpy.types.PropertyGroup]
 
-for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, toonify, charlib:
+for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, charlib, toonify:
     classes.extend(module.classes)
     if hasattr(module, "UIProps"):
         uiprops.append(module.UIProps)
@@ -102,10 +101,6 @@ class_register, class_unregister = bpy.utils.register_classes_factory(classes)
 
 
 def register():
-    # addon updater code and configurations
-    # in case of broken version, try to register the updater first
-    # so that users can revert back to a working version
-    addon_updater_ops.register(bl_info)
     logger.debug("Charmorph register")
     charlib.library.load()
     class_register()
@@ -120,9 +115,8 @@ def register():
 
     cmedit.register()
 
+
 def unregister():
-    # addon updater unregister
-    addon_updater_ops.unregister()
     logger.debug("Charmorph unregister")
     cmedit.unregister()
 
@@ -144,4 +138,3 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-
