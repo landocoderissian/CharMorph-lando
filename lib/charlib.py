@@ -1,6 +1,7 @@
 import os, json, collections, logging, traceback, numpy
 
 import bpy  # pylint: disable=import-error
+import shutil
 
 from . import morphs, utils
 
