@@ -1,6 +1,7 @@
 import os, json, collections, logging, traceback, numpy
 
 import bpy  # pylint: disable=import-error
+import shutil
 
 from . import morphs, utils
 
@@ -76,22 +77,26 @@ class DataDir:
             result.flags.writeable = False
         return result
 
-    def migrate_data(self, new_directory):
-        if not os.path.exists(new_directory):
-            raise ValueError(f"The directory {new_directory} does not exist")
+def migrate_data(self, new_directory):
+    if not os.path.exists(new_directory):
+        raise ValueError(f"The directory {new_directory} does not exist")
 
-        for filename in os.listdir(self.dirpath):
-            source_file = os.path.join(self.dirpath, filename)
-            destination_file = os.path.join(new_directory, filename)
+    for filename in os.listdir(self.dirpath):
+        source_path = os.path.join(self.dirpath, filename)
+        destination_path = os.path.join(new_directory, filename)
 
-            if os.path.isfile(source_file):
-                shutil.move(source_file, destination_file)
+        if os.path.isfile(source_path):
+            shutil.move(source_path, destination_path)
+        elif os.path.isdir(source_path):
+            shutil.move(source_path, destination_path)
 
-        if not os.listdir(self.dirpath):
-            os.rmdir(self.dirpath)
+    # Remove the original directory if it's empty
+    if not os.listdir(self.dirpath):
+        os.rmdir(self.dirpath)
 
-        self.dirpath = new_directory
-        save_directory_path(self.dirpath)
+    # Update the directory path and save it
+    self.dirpath = new_directory
+    save_directory_path(self.dirpath)
 
 class Character(DataDir):
     description = ""
