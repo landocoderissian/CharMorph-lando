@@ -2,6 +2,7 @@ import os, json, collections, logging, traceback, numpy
 
 import bpy  # pylint: disable=import-error
 import shutil
+import numpy as np
 
 from . import morphs, utils
 
@@ -72,31 +73,31 @@ class DataDir:
         file = self.path(file)
         if not os.path.isfile(file):
             return None
-        result = np.load(file)
-        if readonly and isinstance(result, np.ndarray):
+        result = numpy.load(file)
+        if readonly and isinstance(result, numpy.ndarray):
             result.flags.writeable = False
         return result
 
-def migrate_data(self, new_directory):
-    if not os.path.exists(new_directory):
-        raise ValueError(f"The directory {new_directory} does not exist")
+    def migrate_data(self, new_directory):
+        if not os.path.exists(new_directory):
+            raise ValueError(f"The directory {new_directory} does not exist")
 
-    for filename in os.listdir(self.dirpath):
-        source_path = os.path.join(self.dirpath, filename)
-        destination_path = os.path.join(new_directory, filename)
+        for filename in os.listdir(self.dirpath):
+            source_path = os.path.join(self.dirpath, filename)
+            destination_path = os.path.join(new_directory, filename)
 
-        if os.path.isfile(source_path):
-            shutil.move(source_path, destination_path)
-        elif os.path.isdir(source_path):
-            shutil.move(source_path, destination_path)
+            if os.path.isfile(source_path):
+                shutil.move(source_path, destination_path)
+            elif os.path.isdir(source_path):
+                shutil.move(source_path, destination_path)
 
-    # Remove the original directory if it's empty
-    if not os.listdir(self.dirpath):
-        os.rmdir(self.dirpath)
+        # Remove the original directory if it's empty
+        if not os.listdir(self.dirpath):
+            os.rmdir(self.dirpath)
 
-    # Update the directory path and save it
-    self.dirpath = new_directory
-    save_directory_path(self.dirpath)
+        # Update the directory path and save it
+        self.dirpath = new_directory
+        save_directory_path(self.dirpath)
 
 class Character(DataDir):
     description = ""
