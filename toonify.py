@@ -144,7 +144,7 @@ class ToonifyPanel(bpy.types.Panel):
         layout = self.layout
         layout.operator("object.toonify_operator")
 
-    toggle: bpy.props.BoolProperty(name="Expand", default=False)
+    toggle: bpy.props.BoolProperty(name="Expand", default=False) # type: ignore
 
 classes = [
     ToonifyOperator, ToonifyPanel

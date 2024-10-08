@@ -98,8 +98,8 @@ class Manager:
     def _get_old_storage(self, obj):
         for m in (self.morpher, self.old_morpher):
             if m and hasattr(m.core, "storage") and m.core.char is charlib.library.obj_char(obj):
-                if m.core.storage:
-                    return m.core.storage
+                if m.core.storage: # type: ignore
+                    return m.core.storage # type: ignore
         return None
 
     def _get_morpher(self, obj):

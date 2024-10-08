@@ -20,8 +20,11 @@
 
 import logging
 import bpy  # pylint: disable=import-error
+from bpy.types import Operator
+
 
 from . import common, library, assets, morphing, randomize, file_io, hair, finalize, rig, rigify, pose, prefs, cmedit, toonify
+
 from .lib import charlib, file_preperation
 
 logger = logging.getLogger(__name__)
@@ -85,14 +88,24 @@ def select_handler(_):
     on_select()
 
 
-classes: list[type] = [None, prefs.CharMorphPrefs, VIEW3D_PT_CharMorph]
-
+classes: list[type] = [None, prefs.CharMorphPrefs, prefs.CHAR_MORPH_OT_select_directory, VIEW3D_PT_CharMorph]
 uiprops = [bpy.types.PropertyGroup]
+operators: list[type] = []
 
-for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, charlib, toonify, file_preperation:
+for module in (library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose, toonify, file_preperation):
+    # Add classes
     classes.extend(module.classes)
+    
+    # Add UI properties
     if hasattr(module, "UIProps"):
-        uiprops.append(module.UIProps)
+        uiprops.append(module.UIProps)  # type: ignore
+    
+    # Add operators
+    for name in dir(module):
+        item = getattr(module, name)
+        if isinstance(item, type) and issubclass(item, Operator) and item is not Operator:
+            operators.append(item)
+
 
 CharMorphUIProps = type("CharMorphUIProps", tuple(uiprops), {})
 classes[0] = CharMorphUIProps

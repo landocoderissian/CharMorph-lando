@@ -444,7 +444,11 @@ class Library(DataDir):
         if not os.path.isdir(self.dirpath):
             logger.error("Charmorph data is not found at %s", self.dirpath)
         self.chars.clear()
-        self.hair_colors = self.get_yaml("hair_colors.yaml")
+        hair_colors = self.get_yaml("hair_colors.yaml")
+        if isinstance(hair_colors, dict):
+            self.hair_colors = {str(k): v for k, v in hair_colors.items() if isinstance(v, dict)}
+        else:
+            self.hair_colors = {}
         aliases = self.get_yaml("characters/aliases.yaml")
         self.char_aliases.clear()
         for k, v in aliases.items():
@@ -497,75 +501,18 @@ def get_basis(data, mcore=None, use_char=True):
         return get_basis(alt_topo, None, False)
 
     char = None
-    if use_char:
+    if use_char and library is not None:
         char = library.char_by_name(data.get("charmorph_template"))
 
     if char:
         if not alt_topo:
             return char.np_basis
         if isinstance(alt_topo, str):
-            return library.char_by_name(data.get("charmorph_template")).get_np("morphs/alt_topo/" + alt_topo)
+            return char.get_np("morphs/alt_topo/" + alt_topo)
 
     return utils.verts_to_numpy(data.vertices)
 
-class CHAR_MORPH_OT_select_directory(bpy.types.Operator):
-    bl_idname = "char_morph.select_directory"
-    bl_label = "Select Directory"
 
-    directory: bpy.props.StringProperty(subtype="DIR_PATH")  # type: ignore
-
-    def execute(self, context):
-        if not self.directory:
-            self.report({'ERROR'}, "No directory selected")
-            return {'CANCELLED'}
-
-        global global_data_dir
-        global library  # Reference the global library instance
-
-        try:
-            # Migrate the data to the new directory
-            global_data_dir.migrate_data(self.directory)
-
-            # Update the global library instance with the new directory
-            library = Library(global_data_dir.dirpath)
-
-            # Save the new directory path to a config file for persistence
-            save_directory_path(global_data_dir.dirpath)
-
-            self.report({'INFO'}, f"Data migrated to {self.directory} and library updated.")
-        except Exception as e:
-            self.report({'ERROR'}, f"Failed to migrate data: {str(e)}")
-            return {'CANCELLED'}
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-class CHAR_MORPH_PT_panel(bpy.types.Panel):
-    bl_label = "CharMorph Data Migration"
-    bl_idname = "CHAR_MORPH_PT_panel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'CharMorph'
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator("char_morph.select_directory", text="Migrate Data")
-
-classes = [
-    CHAR_MORPH_OT_select_directory, CHAR_MORPH_PT_panel
-]
-
-
-def register():
-    bpy.utils.register_class(CHAR_MORPH_OT_select_directory)
-    bpy.utils.register_class(CHAR_MORPH_PT_panel)
-
-def unregister():
-    bpy.utils.unregister_class(CHAR_MORPH_OT_select_directory)
-    bpy.utils.unregister_class(CHAR_MORPH_PT_panel)
-
-if __name__ == "__main__":
-    register()
+def invoke(self, context, event):
+    context.window_manager.fileselect_add(self)
+    return {'RUNNING_MODAL'}

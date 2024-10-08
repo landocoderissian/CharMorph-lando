@@ -11,7 +11,7 @@ class CHARACTER_OT_PrepareFile(bpy.types.Operator):
     bl_label = "Prepare Character File"
     bl_options = {'REGISTER', 'UNDO'}
 
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH") # type: ignore
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
