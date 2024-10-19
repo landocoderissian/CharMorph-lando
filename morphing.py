@@ -295,3 +295,20 @@ class CHARMORPH_PT_Materials(bpy.types.Panel):
 
 
 classes = [OpResetChar, OpBuildAltTopo, OpProceedSlowMorphing, CHARMORPH_PT_Morphing, CHARMORPH_PT_Materials]
+
+def register():
+    for cls in classes:
+        try:
+            bpy.utils.register_class(cls)
+        except ValueError as e:
+            print(f"Skipping registration of {cls.__name__}: {str(e)}")
+
+def unregister():
+    for cls in reversed(classes):
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError as e:
+            print(f"Skipping unregistration of {cls.__name__}: {str(e)}")
+
+if __name__ == "__main__":
+    register()

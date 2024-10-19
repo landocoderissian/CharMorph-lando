@@ -312,3 +312,22 @@ class OpUnfit(bpy.types.Operator):
 
 
 classes = [OpFitLocal, OpUnfit, OpFitExternal, OpFitLibrary, CHARMORPH_PT_Assets]
+
+
+def register():
+    for cls in classes:
+        if not hasattr(bpy.types, cls.__name__):
+            bpy.utils.register_class(cls)
+        else:
+            print(f"Class {cls.__name__} is already registered")
+
+def unregister():
+    for cls in reversed(classes):
+        if hasattr(bpy.types, cls.__name__):
+            bpy.utils.unregister_class(cls)
+        else:
+            print(f"Class {cls.__name__} is not registered")
+
+if __name__ == "__main__":
+    register()
+

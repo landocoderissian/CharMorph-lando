@@ -217,23 +217,14 @@ class OpMorphCharacter(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-def register():
-    if undo_push and _get_undo_mode() == "A":
-        logger.debug("Advanced undo mode")
-        OpMorphCharacter.bl_options = set()
-    else:
-        logger.debug("Simple undo mode")
-        OpMorphCharacter.bl_options = {"UNDO"}
-    bpy.utils.register_class(OpMorphCharacter)
+classes = [
+    OpMorphCharacter,
+]
 
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_class(OpMorphCharacter)
-
-
-def update_undo_mode():
-    unregister()
-    register()
-
-
-prefs.undo_update_hook = update_undo_mode
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)

@@ -287,3 +287,15 @@ class CHARMORPH_PT_Library(bpy.types.Panel):
 
 
 classes = [OpReloadLib, OpImport, CHARMORPH_PT_Library]
+
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+def unregister():
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+
+if __name__ == "__main__":
+    register()

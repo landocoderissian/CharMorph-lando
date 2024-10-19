@@ -1,0 +1,14 @@
+{
+  "assets": [
+    {
+      "name": "Vitruvian",
+      "license": "CC0",
+      "repo": "https://api.github.com/repos/Hopefullyidontgetbanned/CharMorph-Vitruvian/releases/latest"
+    },
+    {
+      "name": "Reom",
+      "license": "CC-BY",
+      "repo": "https://api.github.com/repos/ComplexAce/CharMorph-Reom/releases/latest"
+    }
+  ]
+}

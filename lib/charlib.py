@@ -73,8 +73,8 @@ class DataDir:
         file = self.path(file)
         if not os.path.isfile(file):
             return None
-        result = numpy.load(file)
-        if readonly and isinstance(result, numpy.ndarray):
+        result = numpy.load(file) # type: ignore
+        if readonly and isinstance(result, numpy.ndarray): # type: ignore
             result.flags.writeable = False
         return result
 
