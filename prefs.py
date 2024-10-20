@@ -212,6 +212,9 @@ def is_adult_mode():
     prefs = bpy.context.preferences.addons[__package__].preferences
     return prefs.adult_mode
 
+def get_prefs():
+    return bpy.context.preferences.addons.get(__package__)
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
