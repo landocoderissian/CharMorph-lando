@@ -17,22 +17,36 @@ undo_default_mode = "S"
 undo_update_hook = None
 
 def load_character_list():
+    # Get the directory of the current script (prefs.py)
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.realpath(os.path.join(script_dir, "..", "data"))
+    
+    # The data directory is at the same level as the script
+    data_dir = os.path.join(script_dir, "data")
     json_file = os.path.join(data_dir, "lists.json")
+    
+    print(f"Attempting to load JSON from: {json_file}")  # Debug print
     
     try:
         with open(json_file, 'r') as f:
             data = json.load(f)
-        return data.get("characters", [])
+        assets = data.get("assets", [])
+        print(f"Loaded assets: {assets}")  # Debug print
+        return assets
+    except FileNotFoundError:
+        print(f"lists.json file not found at {json_file}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON in lists.json: {e}")
+        return []
     except Exception as e:
-        print(f"Error loading lists.json: {e}")
+        print(f"Unexpected error loading lists.json: {e}")
         return []
 
 class CharacterItem(PropertyGroup):
     name: StringProperty(name="Character Name")
     license: StringProperty(name="License")
     downloaded: BoolProperty(name="Downloaded", default=False)
+    repo: StringProperty(name="Repository URL")  # Added repo property
 
 if "undo_push" in dir(bpy.ops.ed):
     undo_modes.append(("A", "Advanced", "Undo system with full info. Can cause problems on some systems."))
@@ -66,17 +80,22 @@ class CharMorphPrefs(AddonPreferences):
     )
 
     def __init__(self):
+        print("CharMorphPrefs __init__ called")  # Debug print
         super().__init__()
         self.load_characters()
 
     def load_characters(self):
+        print("load_characters method called")  # Debug print
         self.character_list.clear()
         characters = load_character_list()
+        print(f"Loaded characters: {characters}")  # Debug print
         for char in characters:
             item = self.character_list.add()
             item.name = char.get("name", "")
             item.license = char.get("license", "")
             item.downloaded = char.get("downloaded", False)
+            item.repo = char.get("repo", "")  # Make sure to add this line
+        print(f"Character list after loading: {list(self.character_list)}")  # Debug print
 
     def draw(self, context):
         layout = self.layout
@@ -88,14 +107,18 @@ class CharMorphPrefs(AddonPreferences):
         row.operator("charmorph.select_directory", text="Migrate Data")
 
         layout.label(text="Available Characters:")
-        for char in self.character_list:
-            row = layout.row()
-            row.label(text=char.name)
-            row.label(text=char.license)
-            if char.downloaded:
-                row.operator("charmorph.delete_character", text="Delete", icon='TRASH').character_name = char.name
-            else:
-                row.operator("charmorph.download_character", text="Download", icon='IMPORT').character_name = char.name
+        print(f"Number of characters in list: {len(self.character_list)}")  # Debug print
+        if len(self.character_list) == 0:
+            layout.label(text="No characters available")
+        else:
+            for char in self.character_list:
+                row = layout.row()
+                row.label(text=char.name)
+                row.label(text=char.license)
+                if char.downloaded:
+                    row.operator("charmorph.delete_character", text="Delete", icon='TRASH').character_name = char.name
+                else:
+                    row.operator("charmorph.download_character", text="Download", icon='IMPORT').character_name = char.name
 
 class CHARMORPH_OT_select_directory(Operator, ImportHelper):
     bl_idname = "charmorph.select_directory"
@@ -135,7 +158,35 @@ class CHARMORPH_OT_download_character(Operator):
     character_name: StringProperty()
     
     def execute(self, context):
-        # Implement character download logic here
+        prefs = context.preferences.addons[__package__].preferences
+        character = next((c for c in prefs.character_list if c.name == self.character_name), None)
+        
+        if not character:
+            self.report({'ERROR'}, f"Character {self.character_name} not found")
+            return {'CANCELLED'}
+        
+        try:
+            # Get the latest release info
+            response = requests.get(character.repo)
+            release_data = response.json()
+            
+            # Get the ZIP file URL
+            zip_url = release_data['assets'][0]['browser_download_url']
+            
+            # Download the ZIP file
+            response = requests.get(zip_url)
+            zip_content = io.BytesIO(response.content)
+            
+            # Extract the ZIP file to the data directory
+            with zipfile.ZipFile(zip_content) as zip_ref:
+                zip_ref.extractall(charlib.DataDir.dirpath)
+            
+            character.downloaded = True
+            self.report({'INFO'}, f"Character {self.character_name} downloaded successfully")
+        except Exception as e:
+            self.report({'ERROR'}, f"Error downloading character: {str(e)}")
+            return {'CANCELLED'}
+        
         return {'FINISHED'}
 
 class CHARMORPH_OT_delete_character(Operator):
@@ -158,6 +209,12 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+    
+    # Load characters after registration
+    print("About to load characters")  # Debug print
+    prefs = bpy.context.preferences.addons[__package__].preferences
+    prefs.load_characters()
+    print(f"Characters after loading: {list(prefs.character_list)}")  # Debug print
 
 def unregister():
     for cls in reversed(classes):

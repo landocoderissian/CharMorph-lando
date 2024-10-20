@@ -20,7 +20,7 @@
 
 import logging
 import bpy  # pylint: disable=import-error
-from bpy.types import Operator
+from bpy.types import Operator, PropertyGroup
 from bpy.utils import register_class, unregister_class
 
 from . import common, library, assets, hair, morphing, randomize, file_io, finalize, rig, rigify, pose, prefs, cmedit, toonify
@@ -30,15 +30,15 @@ from .lib import charlib, file_preperation, materials
 logger = logging.getLogger(__name__)
 
 bl_info = {
-    "name": "CharMorph-lando",
-    "author": "Your Name",
-    "version": (1, 0),
-    "blender": (2, 80, 0),
-    "location": "View3D > Sidebar > CharMorph",
-    "description": "Character creation and morphing tool",
-    "warning": "",
-    "wiki_url": "",
-    "category": "3D View",
+    "name": "CharMorph",
+    "author": "Michael Vigovsky",
+    "version": (0, 3, 5),
+    "blender": (3, 3, 0),
+    "location": "View3D > Tools > CharMorph",
+    "description": "Character creation and morphing, cloth fitting and rigging tools",
+    'wiki_url': "",
+    'tracker_url': 'https://github.com/Upliner/CharMorph/issues',
+    "category": "Characters"
 }
 
 VERSION_ANNEX = ""
@@ -88,18 +88,14 @@ def load_handler(_):
 def select_handler(_):
     on_select()
 
+classes: list[type] = [None, VIEW3D_PT_CharMorph]
 
-classes = [
-    prefs.CharacterItem,
-    prefs.CharMorphPrefs,
-    prefs.CHARMORPH_OT_select_directory,
-    prefs.CHARMORPH_OT_download_character,
-    prefs.CHARMORPH_OT_delete_character,
-    VIEW3D_PT_CharMorph
-]
 uiprops = [bpy.types.PropertyGroup]
-operators: list[type] = []
 
+for module in library, morphing, randomize, file_io, assets, hair, rig, rigify, finalize, pose:
+    classes.extend(module.classes)
+    if hasattr(module, "UIProps"):
+        uiprops.append(module.UIProps)
 
 CharMorphUIProps = type("CharMorphUIProps", tuple(uiprops), {})
 classes[0] = CharMorphUIProps
@@ -109,13 +105,13 @@ _is_registered = False
 def register():
     global _is_registered
     if not _is_registered:
-        prefs.register()
         for cls in classes:
             try:
                 bpy.utils.register_class(cls)
             except ValueError as e:
                 print(f"Skipping registration of {cls.__name__}: {str(e)}")
         
+        prefs.register()
         logger.debug("Charmorph register")
         charlib.library.load()
         common.register()
@@ -125,6 +121,7 @@ def register():
         hair.register()
         cmedit.register()
         library.register()
+        
         bpy.types.WindowManager.charmorph_ui = bpy.props.PointerProperty(type=CharMorphUIProps, options={"SKIP_SAVE"})
         subscribe_select_obj()
 
@@ -137,16 +134,13 @@ def register():
 def unregister():
     global _is_registered
     if _is_registered:
-        prefs.unregister()
         for cls in reversed(classes):
             try:
                 bpy.utils.unregister_class(cls)
-            except RuntimeError:
-                # Class is already unregistered, so we can skip it
-                pass
+            except RuntimeError as e:
+                print(f"Skipping unregistration of {cls.__name__}: {str(e)}")
         
-        rigging.unregister()
-        materials.unregister()
+        prefs.unregister()
         library.unregister()
         cmedit.unregister()
         hair.unregister()
