@@ -109,7 +109,6 @@ class CharMorphPrefs(AddonPreferences):
         row.operator("charmorph.select_directory", text="Migrate Data")
 
         layout.label(text="Available Characters:")
-        print(f"Number of characters in list: {len(self.character_list)}")  # Debug print
         if len(self.character_list) == 0:
             layout.label(text="No characters available")
         else:
@@ -137,8 +136,8 @@ class CHARMORPH_OT_select_directory(Operator, ImportHelper):
     
     def execute(self, context):
         prefs = context.preferences.addons[__package__].preferences
-        source_dir = charlib.DataDir.dirpath
-        
+        source_dir = os.path.expanduser(os.path.join("~", charlib.DataDir.dirpath))
+        print(f"Source directory: {source_dir}")  # Debug print
         if not os.path.exists(source_dir):
             self.report({'ERROR'}, f"Source directory not found: {source_dir}")
             return {'CANCELLED'}

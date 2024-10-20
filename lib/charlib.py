@@ -54,6 +54,9 @@ _empty_dict = object()
 class DataDir:
     dirpath: str = ""
 
+    if dirpath == "":
+        dirpath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
+
     def __init__(self, dirpath: str):
         self.dirpath = dirpath
 
