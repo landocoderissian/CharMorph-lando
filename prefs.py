@@ -84,6 +84,8 @@ class CharMorphPrefs(AddonPreferences):
         super().__init__()
         self.load_characters()
 
+
+
     def load_characters(self):
         print("load_characters method called")  # Debug print
         self.character_list.clear()
@@ -179,7 +181,7 @@ class CHARMORPH_OT_download_character(Operator):
             
             # Extract the ZIP file to the data directory
             with zipfile.ZipFile(zip_content) as zip_ref:
-                zip_ref.extractall(charlib.DataDir.dirpath)
+                zip_ref.extractall(os.path.join(charlib.DataDir.dirpath, "characters"))
             
             character.downloaded = True
             self.report({'INFO'}, f"Character {self.character_name} downloaded successfully")
@@ -206,6 +208,10 @@ classes = (
     CHARMORPH_OT_delete_character,
 )
 
+def is_adult_mode():
+    prefs = bpy.context.preferences.addons[__package__].preferences
+    return prefs.adult_mode
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -222,3 +228,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+
